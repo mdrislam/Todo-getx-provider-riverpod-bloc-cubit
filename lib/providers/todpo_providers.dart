@@ -1,82 +1,58 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:todo_multiple_state_management/repositories/todo_repositories.dart';
+import 'package:flutter/foundation.dart';
 import '../models/todo.dart';
+import '../database/database_helper.dart';
 
-final todoRepositoryProvider = Provider<TodoRepository>((ref) {
-  return TodoRepository();
-});
+class TodoProvider with ChangeNotifier {
+  final List<Todo> _todos = [];
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-final todoListProvider = StateNotifierProvider<TodoListNotifier, List<Todo>>(
-  (ref) => TodoListNotifier(ref),
-);
-
-class TodoListNotifier extends StateNotifier<List<Todo>> {
-  final Ref ref;
-  TodoListNotifier(this.ref) : super([]) {
-    loadTodos();
-  }
+  List<Todo> get allTodos => [..._todos];
+  List<Todo> get activeTodos =>
+      _todos.where((todo) => !todo.completed).toList();
+  List<Todo> get completedTodos =>
+      _todos.where((todo) => todo.completed).toList();
 
   Future<void> loadTodos() async {
-    final todos = await ref.read(todoRepositoryProvider).getAllTodos();
-    state = todos;
+    final todos = await _dbHelper.getAllTodos();
+    _todos.clear();
+    _todos.addAll(todos);
+    notifyListeners();
   }
 
   Future<void> addTodo(String title) async {
-    final newTodo = Todo(title: title);
-    final repository = ref.read(todoRepositoryProvider);
-    await repository.insertTodo(newTodo);
-    state = [...state, newTodo];
+    final todo = Todo(title: title);
+    _todos.add(todo);
+    await _dbHelper.insertTodo(todo);
+    notifyListeners();
   }
 
   Future<void> updateTodo(String id, String newTitle) async {
-    final repository = ref.read(todoRepositoryProvider);
-    state = state.map((todo) {
-      if (todo.id == id) {
-        final updatedTodo = Todo(
-          id: todo.id,
-          title: newTitle,
-          completed: todo.completed,
-          createdAt: todo.createdAt,
-        )..updateTitle(newTitle);
-        repository.updateTodo(updatedTodo);
-        return updatedTodo;
-      }
-      return todo;
-    }).toList();
+    final index = _todos.indexWhere((todo) => todo.id == id);
+    if (index >= 0) {
+      _todos[index].updateTitle(newTitle);
+      await _dbHelper.updateTodo(_todos[index]);
+      notifyListeners();
+    }
   }
 
   Future<void> toggleTodo(String id) async {
-    final repository = ref.read(todoRepositoryProvider);
-    state = state.map((todo) {
-      if (todo.id == id) {
-      
-        final updatedTodo = Todo(
-          id: todo.id,
-          title: todo.title,
-          completed: !todo.completed,
-          createdAt: todo.createdAt,
-        );
-        // updatedTodo.toggleComplete();
-        repository.updateTodo(updatedTodo);
-        return updatedTodo;
-      }
-      return todo;
-    }).toList();
+    final index = _todos.indexWhere((todo) => todo.id == id);
+    if (index >= 0) {
+      _todos[index].toggleComplete();
+      await _dbHelper.updateTodo(_todos[index]);
+      notifyListeners();
+    }
   }
 
   Future<void> deleteTodo(String id) async {
-    final repository = ref.read(todoRepositoryProvider);
-    await repository.deleteTodo(id);
-    state = state.where((todo) => todo.id != id).toList();
+    _todos.removeWhere((todo) => todo.id == id);
+    await _dbHelper.deleteTodo(id);
+    notifyListeners();
   }
 
   Future<void> deleteCompleted() async {
-    final repository = ref.read(todoRepositoryProvider);
-    await repository.deleteCompletedTodos();
-    state = state.where((todo) => !todo.completed).toList();
+    _todos.removeWhere((todo) => todo.completed);
+    await _dbHelper.deleteCompletedTodos();
+    notifyListeners();
   }
-
-  List<Todo> get activeTodos => state.where((todo) => !todo.completed).toList();
-  List<Todo> get completedTodos =>
-      state.where((todo) => todo.completed).toList();
 }

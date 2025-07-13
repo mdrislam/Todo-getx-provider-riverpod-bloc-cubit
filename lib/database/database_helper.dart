@@ -1,14 +1,13 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
 import '../models/todo.dart';
 
-class TodoRepository {
-  static final TodoRepository _instance = TodoRepository._internal();
-  Database? _database;
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
+  static Database? _database;
 
-  TodoRepository._internal();
-
-  factory TodoRepository() => _instance;
+  DatabaseHelper._privateConstructor();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -35,19 +34,19 @@ class TodoRepository {
     );
   }
 
-  Future<List<Todo>> getAllTodos() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('todos');
-    return maps.map((map) => Todo.fromMap(map)).toList();
-  }
-
   Future<void> insertTodo(Todo todo) async {
-    final db = await database;
+    final db = await instance.database;
     await db.insert('todos', todo.toMap());
   }
 
+  Future<List<Todo>> getAllTodos() async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query('todos');
+    return List.generate(maps.length, (i) => Todo.fromMap(maps[i]));
+  }
+
   Future<void> updateTodo(Todo todo) async {
-    final db = await database;
+    final db = await instance.database;
     await db.update(
       'todos',
       todo.toMap(),
@@ -57,12 +56,12 @@ class TodoRepository {
   }
 
   Future<void> deleteTodo(String id) async {
-    final db = await database;
+    final db = await instance.database;
     await db.delete('todos', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> deleteCompletedTodos() async {
-    final db = await database;
+    final db = await instance.database;
     await db.delete('todos', where: 'completed = ?', whereArgs: [1]);
   }
 }

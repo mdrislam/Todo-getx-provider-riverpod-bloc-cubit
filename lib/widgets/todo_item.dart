@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:todo_multiple_state_management/providers/todpo_providers.dart';
-
 import '../models/todo.dart';
 
-class TodoItem extends ConsumerWidget {
+class TodoItem extends StatelessWidget {
   final Todo todo;
 
   const TodoItem({super.key, required this.todo});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Dismissible(
       key: Key(todo.id),
       background: Container(
@@ -30,13 +29,13 @@ class TodoItem extends ConsumerWidget {
         if (direction == DismissDirection.startToEnd) {
           return await _confirmDelete(context);
         } else {
-          _showEditDialog(ref);
+          _showEditDialog(context);
           return false;
         }
       },
       onDismissed: (direction) {
         if (direction == DismissDirection.startToEnd) {
-          ref.read(todoListProvider.notifier).deleteTodo(todo.id);
+          Provider.of<TodoProvider>(context, listen: false).deleteTodo(todo.id);
         }
       },
       child: Container(
@@ -56,11 +55,10 @@ class TodoItem extends ConsumerWidget {
         child: ListTile(
           leading: Checkbox(
             value: todo.completed,
-            onChanged: (_) {
-              ref.read(todoListProvider.notifier).toggleTodo(todo.id);
-
-              print('todo ${todo.id} completed: ${todo.completed}');
-            },
+            onChanged: (_) => Provider.of<TodoProvider>(
+              context,
+              listen: false,
+            ).toggleTodo(todo.id),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -82,11 +80,10 @@ class TodoItem extends ConsumerWidget {
               todo.completed ? Icons.check_circle : Icons.check_circle_outline,
               color: todo.completed ? Colors.green : Colors.grey,
             ),
-            onPressed: () {
-              ref.read(todoListProvider.notifier).toggleTodo(todo.id);
-
-              
-            },
+            onPressed: () => Provider.of<TodoProvider>(
+              context,
+              listen: false,
+            ).toggleTodo(todo.id),
           ),
         ),
       ),
@@ -117,10 +114,10 @@ class TodoItem extends ConsumerWidget {
         false;
   }
 
-  void _showEditDialog(WidgetRef ref) {
+  void _showEditDialog(BuildContext context) {
     final controller = TextEditingController(text: todo.title);
     showDialog(
-      context: ref.context,
+      context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Edit Task'),
         content: TextField(
@@ -139,9 +136,10 @@ class TodoItem extends ConsumerWidget {
           TextButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                ref
-                    .read(todoListProvider.notifier)
-                    .updateTodo(todo.id, controller.text.trim());
+                Provider.of<TodoProvider>(
+                  context,
+                  listen: false,
+                ).updateTodo(todo.id, controller.text.trim());
               }
               Navigator.pop(ctx);
             },
