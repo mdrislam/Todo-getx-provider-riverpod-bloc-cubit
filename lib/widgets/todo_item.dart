@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:todo_multiple_state_management/providers/todpo_providers.dart';
+
 import '../models/todo.dart';
 
-class TodoItem extends StatelessWidget {
+class TodoItem extends ConsumerWidget {
   final Todo todo;
 
   const TodoItem({super.key, required this.todo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Dismissible(
       key: Key(todo.id),
-      background: Container( 
+      background: Container(
         color: Colors.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -29,13 +30,13 @@ class TodoItem extends StatelessWidget {
         if (direction == DismissDirection.startToEnd) {
           return await _confirmDelete(context);
         } else {
-          _showEditDialog(context);
+          _showEditDialog(ref);
           return false;
         }
       },
       onDismissed: (direction) {
         if (direction == DismissDirection.startToEnd) {
-          Provider.of<TodoProvider>(context, listen: false).deleteTodo(todo.id);
+          ref.read(todoListProvider.notifier).deleteTodo(todo.id);
         }
       },
       child: Container(
@@ -55,10 +56,11 @@ class TodoItem extends StatelessWidget {
         child: ListTile(
           leading: Checkbox(
             value: todo.completed,
-            onChanged: (_) => Provider.of<TodoProvider>(
-              context,
-              listen: false,
-            ).toggleTodo(todo.id),
+            onChanged: (_) {
+              ref.read(todoListProvider.notifier).toggleTodo(todo.id);
+
+              print('todo ${todo.id} completed: ${todo.completed}');
+            },
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -80,10 +82,11 @@ class TodoItem extends StatelessWidget {
               todo.completed ? Icons.check_circle : Icons.check_circle_outline,
               color: todo.completed ? Colors.green : Colors.grey,
             ),
-            onPressed: () => Provider.of<TodoProvider>(
-              context,
-              listen: false,
-            ).toggleTodo(todo.id),
+            onPressed: () {
+              ref.read(todoListProvider.notifier).toggleTodo(todo.id);
+
+              
+            },
           ),
         ),
       ),
@@ -114,10 +117,10 @@ class TodoItem extends StatelessWidget {
         false;
   }
 
-  void _showEditDialog(BuildContext context) {
+  void _showEditDialog(WidgetRef ref) {
     final controller = TextEditingController(text: todo.title);
     showDialog(
-      context: context,
+      context: ref.context,
       builder: (ctx) => AlertDialog(
         title: const Text('Edit Task'),
         content: TextField(
@@ -136,10 +139,9 @@ class TodoItem extends StatelessWidget {
           TextButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                Provider.of<TodoProvider>(
-                  context,
-                  listen: false,
-                ).updateTodo(todo.id, controller.text.trim());
+                ref
+                    .read(todoListProvider.notifier)
+                    .updateTodo(todo.id, controller.text.trim());
               }
               Navigator.pop(ctx);
             },
