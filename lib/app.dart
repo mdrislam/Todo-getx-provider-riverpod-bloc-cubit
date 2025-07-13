@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:todo_multiple_state_management/providers/todpo_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:todo_multiple_state_management/screens/home_screen.dart';
 
 class TodoApp extends StatelessWidget {
@@ -8,10 +8,9 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => TodoProvider(),
+    return ProviderScope(
       child: MaterialApp(
-        title: 'SQLite Todo App',
+        title: 'Riverpod Todo App',
         theme: ThemeData(
           primarySwatch: Colors.blue,
           scaffoldBackgroundColor: const Color(0xFFF5F5F7),

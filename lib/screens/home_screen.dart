@@ -1,59 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:todo_multiple_state_management/providers/todpo_providers.dart';
 import 'package:todo_multiple_state_management/widgets/add_todo.dart';
 import 'package:todo_multiple_state_management/widgets/empty_state.dart';
 import 'package:todo_multiple_state_management/widgets/todo_list.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Provider.of<TodoProvider>(context, listen: false).loadTodos();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todos = ref.watch(todoListProvider);
+    final completedCount = ref
+        .watch(todoListProvider.notifier)
+        .completedTodos
+        .length;
     return Scaffold(
       appBar: AppBar(
         title: const Text('SQLite Todo App'),
         actions: [
-          Consumer<TodoProvider>(
-            builder: (context, provider, _) {
-              if (provider.completedTodos.isNotEmpty) {
-                return IconButton(
-                  icon: const Icon(Icons.delete_sweep),
-                  onPressed: () => _deleteCompleted(context),
-                  tooltip: 'Delete Completed',
-                );
-              }
-              return const SizedBox();
-            },
-          ),
+          if (completedCount > 0)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
+              onPressed: () => _deleteCompleted(ref),
+              tooltip: 'Delete Completed',
+            ),
         ],
       ),
-      body: Consumer<TodoProvider>(
-        builder: (context, provider, _) {
-          if (provider.allTodos.isEmpty) {
-            return const EmptyState();
-          }
-          return const TodoList();
-        },
-      ),
+      body: todos.isEmpty ? EmptyState() : TodoList(),
+
       floatingActionButton: const AddTodoButton(),
     );
   }
 
-  void _deleteCompleted(BuildContext context) {
+  void _deleteCompleted(WidgetRef ref) {
     showDialog(
-      context: context,
+      context: ref.context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Completed Tasks'),
         content: const Text(
@@ -66,10 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton(
             onPressed: () {
-              Provider.of<TodoProvider>(
-                context,
-                listen: false,
-              ).deleteCompleted();
+              ref.read(todoListProvider.notifier).deleteCompleted();
+
               Navigator.pop(ctx);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),

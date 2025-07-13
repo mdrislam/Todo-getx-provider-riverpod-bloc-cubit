@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:todo_multiple_state_management/providers/todpo_providers.dart';
 
-class AddTodoButton extends StatelessWidget {
+class AddTodoButton extends ConsumerWidget {
   const AddTodoButton({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FloatingActionButton(
-      onPressed: () => _showAddDialog(context),
+      onPressed: () => _showAddDialog(ref),
       child: const Icon(Icons.add),
     );
   }
 
-  void _showAddDialog(BuildContext context) {
+  void _showAddDialog(WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
-      context: context,
+      context: ref.context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add New Task'),
         content: TextField(
@@ -35,11 +36,12 @@ class AddTodoButton extends StatelessWidget {
           TextButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                Provider.of<TodoProvider>(
-                  context,
-                  listen: false,
-                ).addTodo(controller.text.trim());
+                ref
+                    .read(todoListProvider.notifier)
+                    .addTodo(controller.text.trim());
               }
+              final todos = ref.watch(todoListProvider);
+              print(todos.length);
               Navigator.pop(ctx);
             },
             child: const Text('Add'),
